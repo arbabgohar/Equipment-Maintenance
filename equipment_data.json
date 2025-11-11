@@ -1,0 +1,181 @@
+[
+  {
+    "equipment_name": "Blockwise Crimper",
+    "manufacturer": "Blockwise",
+    "model": "CX",
+    "serial_number": "14024",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2023-04-25",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean the whole unit with Isopropyl alcohol",
+          "Check for leaks, dust, rust and light indicators of the equipment",
+          "Perform a diameter check (Refer to manual)",
+          "Perform an actuator force check (Refer to manual)",
+          "Perform a temperature check (Refer to manual)"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Leak Tester",
+    "manufacturer": "Ateq",
+    "model": "F520",
+    "serial_number": "E173-0845",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior with 99% IPA",
+          "Check for worn out tubing & manifold and leak from connectors, replace as needed"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Blockwise Crimper",
+    "manufacturer": "Blockwise",
+    "model": "CX",
+    "serial_number": "3231",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean the whole unit with 99% Isopropyl Alcohol",
+          "Check for leaks, dust, rust light indicators of the equipment",
+          "Perform a diameter check (Refer to manual)",
+          "Perform an actuator force check (Refer to manual)",
+          "Perform a temperature check (Refer to manual)"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Coronary Crimping System",
+    "manufacturer": "Machine Solutions Inc.",
+    "model": "Series PTA 600/ K17M0242F2100#100PSIG",
+    "serial_number": "607/CS901 (Pressure gauge/Heating elements)",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior of the whole system with 99% IPA",
+          "Clean inner diameter with IPA (99%) and dry with compressed air",
+          "Check supply pressure gauge, line regulator, and verify range",
+          "Test for disparity, adjust if necessary (see Engineering Manager)",
+          "Check bearings and segments for lubrication issues",
+          "Check LED illumination for heater functioning, trouble shoot, replace catridge heater/circuit board if necessary"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Temperature controller",
+    "manufacturer": "Waterlow",
+    "model": "Series 989",
+    "serial_number": "IST - 007",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-01-17",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior with 99% IPA",
+          "Check for external worn out wiring/connectors, replace as needed"
+        ]
+      },
+      "annual": {
+        "tasks": [
+          "Check internal wiring",
+          "Verify temperature using calibrated thermometer"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Ultrasonic Cleaner",
+    "manufacturer": "Branson",
+    "model": "2510",
+    "serial_number": "RLC09124589E",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean with Spore Klenz",
+          "Clean with 99% IPA"
+        ]
+      },
+      "annual": {
+        "tasks": [
+          "Carry out ultrasonic cleaner performance test with aluminum foil - foil test (https://www.youtube.com/watch?v=YR5PgwEDFzs)"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Incubator",
+    "manufacturer": "EZTest",
+    "model": "1401",
+    "serial_number": "10041077",
+    "location": "Customer Service",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior with 99% IPA"
+        ]
+      },
+      "annual": {
+        "tasks": [
+          "Clean incubation/activation cavities with 99% IPA dampened cotton swab, follow by blowing with compressed air"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Calibrated Metric Ruler",
+    "manufacturer": "GEI International/Products Engineering",
+    "model": "2020a/261-006",
+    "serial_number": "#1/#2/#3",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-02-11",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior with 99% IPA, use a soft cloth to remove any dust, particles, color fading from its surface that may cause ruler accuracy",
+          "Check if the ruler is not deformed or bent by placing it on a flat surface. If the ruler does not wobble, it is a good sign"
+        ]
+      },
+      "annual": {
+        "tasks": [
+          "Clamp 2 rulers together and use a magnifying glass to check if its graduation lines are aligned. Perform it simultaneously with all the rulers"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "#9 Steri-Vac 8XL 790BGP",
+    "manufacturer": "3M",
+    "model": "#9 Steri-Vac 8XL 790BGP",
+    "serial_number": "350158",
+    "location": "Sterilizer Cage",
+    "last_maintenance_date": "2024-09-05",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean according to ENG7607"
+        ]
+      },
+      "annual": {
+        "tasks": [
+          "Perform Preventative Maintenance per ENG7607"
+        ]
+      }
+    }
+  }
+]
+
