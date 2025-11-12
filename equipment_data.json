@@ -5,7 +5,7 @@
     "model": "CX",
     "serial_number": "14024",
     "location": "Cleanroom",
-    "last_maintenance_date": "2023-04-25",
+    "last_maintenance_date": "2025-06-25",
     "maintenance_schedule": {
       "bi_annual": {
         "tasks": [
@@ -176,6 +176,53 @@
         ]
       }
     }
+  },
+  {
+    "equipment_name": "Oil Free Air Compressor",
+    "manufacturer": "Industrial Air",
+    "model": "ZS-5ATD",
+    "serial_number": "20250623001",
+    "location": "Warehouse",
+    "last_maintenance_date": "2025-09-10",
+    "maintenance_schedule": {
+      "monthly": {
+        "last_maintenance_date": "2025-09-10",
+        "tasks": [
+          "Remove dust from air filter",
+          "Check safety valve operation"
+        ]
+      },
+      "bi_annual": {
+        "last_maintenance_date": "2025-09-10",
+        "tasks": [
+          "Replace air filter element",
+          "Testing for leaks with soapy sprayer",
+          "Inspect and clean air cooler"
+        ]
+      },
+      "annual": {
+        "last_maintenance_date": "2025-09-10",
+        "tasks": [
+          "Check/replace discharge pipe, fan, air end, and motor bearings if needed",
+          "Replace tip seals"
+        ]
+      }
+    }
+  },
+  {
+    "equipment_name": "Rotary Pouch Sealer",
+    "manufacturer": "Henan Junmu Medical Equipment Co., Ltd.",
+    "model": "HCRseal-30P",
+    "serial_number": "JM20250690001",
+    "location": "Cleanroom",
+    "last_maintenance_date": "2025-08-12",
+    "maintenance_schedule": {
+      "bi_annual": {
+        "tasks": [
+          "Clean exterior with 99% IPA",
+          "Clean dust on the bottom of the sealing machine or the surface of placement"
+        ]
+      }
+    }
   }
 ]
-
