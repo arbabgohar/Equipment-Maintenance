@@ -18,6 +18,7 @@ from update_maintenance_date import (
     find_equipment,
     update_maintenance_date as update_date
 )
+from excel_updater import update_excel_maintenance
 
 app = Flask(__name__)
 
@@ -35,47 +36,81 @@ SLACK_VERIFICATION_TOKEN = config.get("slack_verification_token", "")
 
 def parse_slack_message(text: str) -> dict:
     """
-    Parse Slack message text to extract equipment name/S/N and date.
-    Expected format: "equipment_name frequency YYYY-MM-DD" or "S/N: serial_number frequency YYYY-MM-DD"
+    Parse Slack message text to extract equipment name/S/N, date, and optional initials.
+    Expected format: "equipment_name frequency YYYY-MM-DD [initials]" or "S/N: serial_number frequency YYYY-MM-DD [initials]"
     """
-    parts = text.strip().split()
-    if len(parts) < 3:
+    text = text.strip()
+    
+    # Handle quoted equipment names
+    if text.startswith('"'):
+        # Find the closing quote
+        end_quote = text.find('"', 1)
+        if end_quote > 0:
+            equipment_name = text[1:end_quote]  # Extract name without quotes
+            remaining = text[end_quote + 1:].strip()
+        else:
+            # No closing quote, treat as normal
+            parts = text.split()
+            equipment_name = None
+            remaining = text
+    else:
+        equipment_name = None
+        remaining = text
+    
+    # Parse the remaining parts
+    parts = remaining.split()
+    if len(parts) < 2:
         return None
     
-    # Try to find frequency
+    # Try to find frequency and date
     frequency = None
     date = None
-    equipment_input = []
+    initials = None
     
-    for part in parts:
+    for i, part in enumerate(parts):
         part_lower = part.lower()
         if part_lower in ["monthly", "bi_annual", "annual", "bi-annual"]:
             frequency = part_lower.replace("-", "_")
         elif len(part) == 10 and part.count("-") == 2:  # Date format YYYY-MM-DD
             date = part
-        else:
-            equipment_input.append(part)
+        elif i == len(parts) - 1 and len(part) <= 5 and part.isalnum():
+            # Last part that's short and alphanumeric is likely initials
+            initials = part.upper()
     
     if not frequency or not date:
         return None
     
-    # Check if it's a serial number format
-    equipment_name = " ".join(equipment_input)
+    # If we didn't get equipment name from quotes, check for S/N format
     serial_number = None
-    
-    # Check for "S/N:" prefix
-    if equipment_input[0].upper() in ["S/N:", "SN:", "SERIAL:"]:
-        serial_number = " ".join(equipment_input[1:])
-        equipment_name = None
-    elif equipment_input[0].upper().startswith("S/N:"):
-        serial_number = equipment_input[0][4:].strip()
-        equipment_name = " ".join(equipment_input[1:]) if len(equipment_input) > 1 else None
+    if not equipment_name:
+        # Check if it starts with S/N:
+        if remaining.upper().startswith("S/N:") or remaining.upper().startswith("SN:"):
+            s_n_part = remaining.split()[0]
+            if ":" in s_n_part:
+                serial_number = s_n_part.split(":", 1)[1].strip()
+            else:
+                # S/N: is separate, get next part
+                remaining_parts = remaining.split()
+                if len(remaining_parts) > 1:
+                    serial_number = remaining_parts[1]
+        else:
+            # Try to extract equipment name from remaining parts (before frequency)
+            name_parts = []
+            for part in parts:
+                if part.lower() in ["monthly", "bi_annual", "annual", "bi-annual"]:
+                    break
+                if len(part) == 10 and part.count("-") == 2:
+                    break
+                name_parts.append(part)
+            if name_parts:
+                equipment_name = " ".join(name_parts)
     
     return {
-        "equipment_name": equipment_name if equipment_name else None,
-        "serial_number": serial_number,
+        "equipment_name": equipment_name.strip() if equipment_name else None,
+        "serial_number": serial_number.strip() if serial_number else None,
         "frequency": frequency,
-        "date": date
+        "date": date,
+        "initials": initials
     }
 
 
@@ -84,17 +119,27 @@ def find_equipment_by_name_or_sn(equipment_name: str = None, serial_number: str 
     data = load_equipment_data()
     
     if serial_number:
+        serial_number = serial_number.strip()
         for eq in data:
-            if eq.get("serial_number", "").lower() == serial_number.lower():
+            eq_sn = str(eq.get("serial_number", "")).strip().lower()
+            if eq_sn == serial_number.lower():
                 return eq
     elif equipment_name:
+        equipment_name = equipment_name.strip()
+        # Remove quotes if present
+        if equipment_name.startswith('"') and equipment_name.endswith('"'):
+            equipment_name = equipment_name[1:-1]
+        
         # Try exact match first
         for eq in data:
-            if eq.get("equipment_name", "").lower() == equipment_name.lower():
+            eq_name = str(eq.get("equipment_name", "")).strip().lower()
+            if eq_name == equipment_name.lower():
                 return eq
+        
         # Try partial match
         for eq in data:
-            if equipment_name.lower() in eq.get("equipment_name", "").lower():
+            eq_name = str(eq.get("equipment_name", "")).strip().lower()
+            if equipment_name.lower() in eq_name or eq_name in equipment_name.lower():
                 return eq
     
     return None
@@ -231,12 +276,14 @@ def slack_command():
             "text": "Usage:\n"
                    "• `/maintenance list` - List all equipment\n"
                    "• `/maintenance status` - List equipment with maintenance dates\n"
-                   "• `/maintenance \"Equipment Name\" frequency YYYY-MM-DD` - Update date\n"
-                   "• `/maintenance S/N: serial_number frequency YYYY-MM-DD` - Update by S/N\n\n"
+                   "• `/maintenance \"Equipment Name\" frequency YYYY-MM-DD [initials]` - Update date\n"
+                   "• `/maintenance S/N: serial_number frequency YYYY-MM-DD [initials]` - Update by S/N\n\n"
                    "Examples:\n"
-                   "`/maintenance \"Oil Free Air Compressor\" monthly 2025-11-15`\n"
-                   "`/maintenance S/N: 20250623001 bi_annual 2025-11-15`\n\n"
-                   "Frequencies: monthly, bi_annual, annual"
+                   "`/maintenance \"Oil Free Air Compressor\" monthly 2025-11-15 AG`\n"
+                   "`/maintenance S/N: 20250623001 bi_annual 2025-11-15 SJ`\n"
+                   "`/maintenance \"Temperature controller\" annual 2025-11-15` (uses Slack username if no initials)\n\n"
+                   "Frequencies: monthly, bi_annual, annual\n"
+                   "Initials: Optional 2-5 character initials (e.g., AG, SJ, AA)"
         })
     
     # Parse the message
@@ -275,6 +322,32 @@ def slack_command():
     )
     
     if success:
+        # Get initials from parsed message or use username
+        user_initials = parsed.get('initials') or user_name
+        
+        # Update Excel file for all frequencies
+        excel_result = update_excel_maintenance(
+            equipment_name=equipment_name,
+            serial_number=serial_number or "",
+            frequency=parsed['frequency'],
+            date=parsed['date'],
+            user_name=user_initials
+        )
+        
+        # Build response message
+        response_text = f"*Maintenance Updated*\n"
+        response_text += f"*Equipment:* {equipment_name}\n"
+        response_text += f"*Serial Number:* {serial_number or 'N/A'}\n"
+        response_text += f"*Frequency:* {parsed['frequency'].replace('_', '-').title()}\n"
+        response_text += f"*Date:* {parsed['date']}\n"
+        response_text += f"*Updated by:* {user_initials}"
+        
+        if excel_result:
+            if excel_result['success']:
+                response_text += f"\n*Excel:* Updated successfully"
+            else:
+                response_text += f"\n*Excel:* {excel_result['message']}"
+        
         return jsonify({
             "response_type": "in_channel",
             "text": f"Maintenance updated by @{user_name}",
@@ -283,11 +356,7 @@ def slack_command():
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Maintenance Updated*\n"
-                               f"*Equipment:* {equipment_name}\n"
-                               f"*Serial Number:* {serial_number or 'N/A'}\n"
-                               f"*Frequency:* {parsed['frequency'].replace('_', '-').title()}\n"
-                               f"*Date:* {parsed['date']}"
+                        "text": response_text
                     }
                 }
             ]

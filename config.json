@@ -3,6 +3,7 @@
   "alert_days_before": 0,
   "check_frequency": "daily",
   "check_interval_hours": 24,
-  "slack_verification_token": ""
+  "slack_verification_token": "",
+  "excel_file_path": "\\\\insitu-serv2022\\NetServ_2\\PRODUCTION\\Equipment Maintenance Log\\SLACK Equipment Maintenance LOG.xls"
 }
 
