@@ -74,13 +74,48 @@ Example:
 
 ## Usage
 
-### Run Once
+### Run Continuously (Recommended)
+
+Run the program continuously so it always checks for due maintenance:
+
+**Windows:**
+```bash
+# Option 1: Double-click run_continuous.bat
+# Option 2: Run from command prompt
+python maintenance_checker.py --continuous
+```
+
+**Linux/Mac:**
+```bash
+# Option 1: Use the helper script
+chmod +x run_continuous.sh
+./run_continuous.sh
+
+# Option 2: Run directly
+python3 maintenance_checker.py --continuous
+```
+
+This will:
+- Run continuously in the background
+- Check for due maintenance every 24 hours (configurable in `config.json`)
+- Automatically reload equipment data to pick up any updates
+- Use the current date/time for all checks (always knows the current date)
+- Show timestamps for all operations
+- Restart automatically if an error occurs
+
+**To stop:** Press `Ctrl+C`
+
+**To change check frequency:** Edit `check_interval_hours` in `config.json` (e.g., `12` for every 12 hours, `1` for hourly)
+
+### Run Once (Single Check)
+
+For a one-time check:
 
 ```bash
 python maintenance_checker.py
 ```
 
-### Schedule Regular Checks
+### Schedule Regular Checks (Alternative)
 
 #### Windows Task Scheduler
 
@@ -121,7 +156,33 @@ Slack notifications include:
 
 ## Updating Last Maintenance Date
 
-After completing maintenance, update the `last_maintenance_date` field in `equipment_data.json` to the completion date (YYYY-MM-DD format).
+**📖 For detailed instructions, see [HOW_TO_UPDATE_DATES.md](HOW_TO_UPDATE_DATES.md)**
+
+### Quick Method (Recommended)
+
+Simply run the update script and follow the prompts:
+
+```bash
+python update_maintenance_date.py
+```
+
+The script will:
+1. Show you all available equipment
+2. Ask which equipment you worked on
+3. Ask which maintenance type (monthly/bi-annual/annual)
+4. Ask for the completion date (or use today if you press Enter)
+
+### Command-Line Method (Faster)
+
+```bash
+python update_maintenance_date.py "Equipment Name" frequency YYYY-MM-DD
+
+# Examples:
+python update_maintenance_date.py "Oil Free Air Compressor" monthly 2025-10-15
+python update_maintenance_date.py "Blockwise Crimper" bi_annual 2025-10-15 14024
+```
+
+**Important:** Each maintenance frequency has its own independent date. Updating bi-annual maintenance does NOT affect the annual maintenance date.
 
 ## Troubleshooting
 

@@ -1,6 +1,7 @@
 {
-  "slack_webhook_url": "YOUR_SLACK_WEBHOOK_URL_HERE",
+  "slack_webhook_url": "https://hooks.slack.com/services/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",
   "alert_days_before": 0,
-  "check_frequency": "daily"
+  "check_frequency": "daily",
+  "check_interval_hours": 24
 }
 

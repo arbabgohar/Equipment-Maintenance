@@ -24,7 +24,7 @@
     "model": "F520",
     "serial_number": "E173-0845",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
         "tasks": [
@@ -40,7 +40,7 @@
     "model": "CX",
     "serial_number": "3231",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
         "tasks": [
@@ -59,7 +59,7 @@
     "model": "Series PTA 600/ K17M0242F2100#100PSIG",
     "serial_number": "607/CS901 (Pressure gauge/Heating elements)",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
         "tasks": [
@@ -79,15 +79,17 @@
     "model": "Series 989",
     "serial_number": "IST - 007",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-01-17",
+    "last_maintenance_date": "2025-07-17",
     "maintenance_schedule": {
       "bi_annual": {
+        "last_maintenance_date": "2025-07-17",
         "tasks": [
           "Clean exterior with 99% IPA",
           "Check for external worn out wiring/connectors, replace as needed"
         ]
       },
       "annual": {
+        "last_maintenance_date": "2025-01-17",
         "tasks": [
           "Check internal wiring",
           "Verify temperature using calibrated thermometer"
@@ -101,15 +103,17 @@
     "model": "2510",
     "serial_number": "RLC09124589E",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
+        "last_maintenance_date": "2025-08-11",
         "tasks": [
           "Clean with Spore Klenz",
           "Clean with 99% IPA"
         ]
       },
       "annual": {
+        "last_maintenance_date": "2025-02-11",
         "tasks": [
           "Carry out ultrasonic cleaner performance test with aluminum foil - foil test (https://www.youtube.com/watch?v=YR5PgwEDFzs)"
         ]
@@ -122,14 +126,16 @@
     "model": "1401",
     "serial_number": "10041077",
     "location": "Customer Service",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
+        "last_maintenance_date": "2025-08-11",
         "tasks": [
           "Clean exterior with 99% IPA"
         ]
       },
       "annual": {
+        "last_maintenance_date": "2025-02-11",
         "tasks": [
           "Clean incubation/activation cavities with 99% IPA dampened cotton swab, follow by blowing with compressed air"
         ]
@@ -142,15 +148,17 @@
     "model": "2020a/261-006",
     "serial_number": "#1/#2/#3",
     "location": "Cleanroom",
-    "last_maintenance_date": "2025-02-11",
+    "last_maintenance_date": "2025-08-11",
     "maintenance_schedule": {
       "bi_annual": {
+        "last_maintenance_date": "2025-08-11",
         "tasks": [
           "Clean exterior with 99% IPA, use a soft cloth to remove any dust, particles, color fading from its surface that may cause ruler accuracy",
           "Check if the ruler is not deformed or bent by placing it on a flat surface. If the ruler does not wobble, it is a good sign"
         ]
       },
       "annual": {
+        "last_maintenance_date": "2025-02-11",
         "tasks": [
           "Clamp 2 rulers together and use a magnifying glass to check if its graduation lines are aligned. Perform it simultaneously with all the rulers"
         ]
@@ -163,14 +171,16 @@
     "model": "#9 Steri-Vac 8XL 790BGP",
     "serial_number": "350158",
     "location": "Sterilizer Cage",
-    "last_maintenance_date": "2024-09-05",
+    "last_maintenance_date": "2025-09-25",
     "maintenance_schedule": {
       "bi_annual": {
+        "last_maintenance_date": "2025-09-25",
         "tasks": [
           "Clean according to ENG7607"
         ]
       },
       "annual": {
+        "last_maintenance_date": "2024-09-25",
         "tasks": [
           "Perform Preventative Maintenance per ENG7607"
         ]

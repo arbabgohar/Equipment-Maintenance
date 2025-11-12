@@ -1,10 +1,12 @@
 """
 Equipment Maintenance Notification System
 Checks for due maintenance and sends Slack notifications
+Runs continuously and checks periodically based on configuration
 """
 
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import requests
@@ -202,17 +204,26 @@ class MaintenanceChecker:
             print(f"Error sending Slack notification: {e}")
             return False
     
+    def _reload_data(self) -> None:
+        """Reload equipment data and config to pick up any changes."""
+        self.equipment_list = self._load_equipment_data()
+        self.config = self._load_config()
+    
     def check_and_notify(self) -> None:
         """Main method to check for due maintenance and send notifications."""
-        print(f"Checking maintenance due dates... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(f"[{timestamp}] Checking maintenance due dates...")
+        
+        # Reload data to get latest updates
+        self._reload_data()
         
         due_items = self._get_due_maintenance()
         
         if not due_items:
-            print("No maintenance due at this time.")
+            print(f"[{timestamp}] No maintenance due at this time.")
             return
         
-        print(f"Found {len(due_items)} equipment item(s) with due maintenance.")
+        print(f"[{timestamp}] Found {len(due_items)} equipment item(s) with due maintenance.")
         
         # Format and send Slack message
         slack_message = self._format_slack_message(due_items)
@@ -220,7 +231,7 @@ class MaintenanceChecker:
             self._send_slack_notification(slack_message)
         
         # Also print to console
-        print("\n=== Maintenance Due ===")
+        print(f"\n[{timestamp}] === Maintenance Due ===")
         for item in due_items:
             equipment = item["equipment"]
             print(f"\nEquipment: {equipment['equipment_name']}")
@@ -229,12 +240,61 @@ class MaintenanceChecker:
             print("Tasks:")
             for i, task in enumerate(item['tasks'], 1):
                 print(f"  {i}. {task}")
+    
+    def run_continuous(self, check_interval_hours: int = 24) -> None:
+        """
+        Run the maintenance checker continuously, checking at specified intervals.
+        
+        Args:
+            check_interval_hours: How often to check (in hours). Default is 24 (daily).
+        """
+        check_interval_seconds = check_interval_hours * 3600
+        
+        print("=" * 60)
+        print("Equipment Maintenance Notification System")
+        print("Running in continuous mode...")
+        print(f"Check interval: Every {check_interval_hours} hour(s)")
+        print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        print("\nPress Ctrl+C to stop\n")
+        
+        try:
+            while True:
+                # Perform check
+                self.check_and_notify()
+                
+                # Calculate next check time
+                next_check = datetime.now() + timedelta(seconds=check_interval_seconds)
+                print(f"\nNext check scheduled for: {next_check.strftime('%Y-%m-%d %H:%M:%S')}")
+                print("-" * 60)
+                
+                # Wait for next check interval
+                time.sleep(check_interval_seconds)
+                
+        except KeyboardInterrupt:
+            print("\n\nStopping maintenance checker...")
+            print(f"Stopped at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        except Exception as e:
+            print(f"\nError in continuous mode: {e}")
+            print("Restarting in 60 seconds...")
+            time.sleep(60)
+            self.run_continuous(check_interval_hours)
 
 
 def main():
     """Main entry point."""
+    import sys
+    
     checker = MaintenanceChecker()
-    checker.check_and_notify()
+    
+    # Check if running in continuous mode
+    if len(sys.argv) > 1 and sys.argv[1] == "--continuous":
+        # Get check interval from config or use default
+        check_interval = checker.config.get("check_interval_hours", 24)
+        checker.run_continuous(check_interval)
+    else:
+        # Run once
+        checker.check_and_notify()
 
 
 if __name__ == "__main__":
