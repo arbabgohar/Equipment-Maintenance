@@ -8,6 +8,7 @@ This program monitors equipment maintenance schedules and sends Slack notificati
 - Calculates due dates based on last maintenance date
 - Sends formatted Slack notifications with equipment details and maintenance steps
 - Supports multiple equipment items with different maintenance frequencies
+- **Slack Bot Integration** - Update maintenance dates directly from Slack using `/maintenance` command
 
 ## Setup
 

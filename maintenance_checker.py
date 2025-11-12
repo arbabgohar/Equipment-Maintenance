@@ -92,7 +92,8 @@ class MaintenanceChecker:
                     due_items.append({
                         "equipment": equipment,
                         "frequency": "Bi-Annual",
-                        "tasks": maintenance_schedule["bi_annual"]["tasks"]
+                        "tasks": maintenance_schedule["bi_annual"]["tasks"],
+                        "last_maintenance_date": last_maintenance
                     })
             
             # Check annual maintenance
@@ -103,7 +104,8 @@ class MaintenanceChecker:
                     due_items.append({
                         "equipment": equipment,
                         "frequency": "Annual",
-                        "tasks": maintenance_schedule["annual"]["tasks"]
+                        "tasks": maintenance_schedule["annual"]["tasks"],
+                        "last_maintenance_date": last_maintenance
                     })
             
             # Check monthly maintenance
@@ -114,7 +116,8 @@ class MaintenanceChecker:
                     due_items.append({
                         "equipment": equipment,
                         "frequency": "Monthly",
-                        "tasks": maintenance_schedule["monthly"]["tasks"]
+                        "tasks": maintenance_schedule["monthly"]["tasks"],
+                        "last_maintenance_date": last_maintenance
                     })
         
         return due_items
@@ -129,7 +132,7 @@ class MaintenanceChecker:
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": "⚠️ Equipment Maintenance Due"
+                    "text": "Equipment Maintenance Due"
                 }
             },
             {
@@ -141,6 +144,14 @@ class MaintenanceChecker:
             equipment = item["equipment"]
             frequency = item["frequency"]
             tasks = item["tasks"]
+            last_maintenance_date = item.get("last_maintenance_date", "N/A")
+            
+            # Format the date for display
+            try:
+                date_obj = self._parse_date(last_maintenance_date)
+                formatted_date = date_obj.strftime("%B %d, %Y")  # e.g., "November 12, 2025"
+            except:
+                formatted_date = last_maintenance_date
             
             # Equipment header
             equipment_text = f"*{equipment['equipment_name']}*"
@@ -157,12 +168,12 @@ class MaintenanceChecker:
                 }
             })
             
-            # Frequency
+            # Frequency and Last Maintenance Date
             blocks.append({
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Frequency:* {frequency}"
+                    "text": f"*Frequency:* {frequency}\n*Last Maintenance:* {formatted_date}"
                 }
             })
             
@@ -198,10 +209,19 @@ class MaintenanceChecker:
         try:
             response = requests.post(webhook_url, json=message, timeout=10)
             response.raise_for_status()
-            print("Slack notification sent successfully!")
+            print("✓ Slack notification sent successfully!")
             return True
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if hasattr(e, 'response') and e.response else "Unknown"
+            if status_code == 403:
+                print(f"✗ Slack webhook error (403 Forbidden):")
+                print(f"  The webhook URL may be invalid, expired, or revoked.")
+                print(f"  Please check your Slack webhook settings and update config.json")
+            else:
+                print(f"✗ Slack webhook error ({status_code}): {e}")
+            return False
         except requests.exceptions.RequestException as e:
-            print(f"Error sending Slack notification: {e}")
+            print(f"✗ Error sending Slack notification: {e}")
             return False
     
     def _reload_data(self) -> None:
