@@ -41,6 +41,10 @@ def update_excel_xlsx(workbook, target_sheet, step_numbers_to_tick, date, user_n
     
     # Look for header row with step numbers and "Date" column (search up to row 30)
     for row in range(1, min(30, target_sheet.max_row + 1)):
+        row_step_cols = {}
+        row_date_col = None
+        row_notes_col = None
+        
         for col in range(1, target_sheet.max_column + 1):
             cell_value = str(target_sheet.cell(row, col).value or "").strip()
             
@@ -53,19 +57,22 @@ def update_excel_xlsx(workbook, target_sheet, step_numbers_to_tick, date, user_n
                     f"step {step_num}" in cell_value.lower() or 
                     f"task {step_num}" in cell_value.lower() or
                     (cell_value.isdigit() and int(cell_value) == step_num)):
-                    step_cols[step_num] = col
+                    row_step_cols[step_num] = col
             
             # Check for Date column
-            if "date" in cell_value.lower() and date_col is None:
-                date_col = col
+            if "date" in cell_value.lower() and row_date_col is None:
+                row_date_col = col
             
             # Check for Notes column
-            if "note" in cell_value.lower() and notes_col is None:
-                notes_col = col
+            if "note" in cell_value.lower() and row_notes_col is None:
+                row_notes_col = col
         
         # If we found the step columns we need, this is likely the header row
-        if len(step_cols) == len(step_numbers_to_tick):
+        if len(row_step_cols) == len(step_numbers_to_tick):
             header_row = row
+            step_cols = row_step_cols
+            date_col = row_date_col
+            notes_col = row_notes_col
             break
     
     # If we didn't find the expected steps, try alternative step numbers
@@ -281,78 +288,33 @@ def update_excel_maintenance(
         is_xls_format = file_path.lower().endswith('.xls') and not file_path.lower().endswith('.xlsx')
         
         # Get step numbers to tick based on equipment maintenance schedule
+        # We'll determine this by reading the Excel file structure first
         step_numbers_to_tick = []
-        try:
-            import json
-            with open("equipment_data.json", 'r') as f:
-                equipment_list = json.load(f)
-            
-            equipment_info = None
-            for eq in equipment_list:
-                if (serial_number and str(eq.get("serial_number", "")).strip().lower() == serial_number.strip().lower()) or \
-                   (equipment_name and str(eq.get("equipment_name", "")).strip().lower() == equipment_name.strip().lower()):
-                    equipment_info = eq
-                    break
-            
-            maintenance_schedule = equipment_info.get("maintenance_schedule", {}) if equipment_info else {}
-            frequency_key = frequency.lower().replace("-", "_")
-            
-            if equipment_info:
-                # The Excel file may have "Everyday" tasks (step 1) that aren't in JSON
-                # We need to detect this from the Excel file structure
-                # For now, we'll try to read the Excel to see what steps exist
-                # But first, let's try a smarter approach: check if step 1 exists in Excel
-                
-                # Try to determine step offset by checking if there's an "everyday" frequency
-                # or by reading the Excel file structure
-                step_offset = 0
-                
-                # Check if Excel might have everyday tasks (we'll detect this when reading Excel)
-                # For now, assume monthly starts at step 2 if we have monthly tasks
-                if frequency_key == "monthly":
-                    # Monthly might be steps 2,3 if everyday exists, or 1,2 if not
-                    # We'll try both when searching
-                    step_numbers_to_tick = [2, 3]  # Try 2,3 first (most common case)
-                elif frequency_key == "bi_annual":
-                    # Count: everyday(1) + monthly(2) = 3, so bi-annual starts at 4
-                    monthly_count = len(maintenance_schedule.get("monthly", {}).get("tasks", []))
-                    step_numbers_to_tick = [3 + monthly_count, 4 + monthly_count, 5 + monthly_count][:len(maintenance_schedule.get("bi_annual", {}).get("tasks", []))]
-                elif frequency_key == "annual":
-                    # Count all previous
-                    monthly_count = len(maintenance_schedule.get("monthly", {}).get("tasks", []))
-                    bi_annual_count = len(maintenance_schedule.get("bi_annual", {}).get("tasks", []))
-                    start_step = 1 + monthly_count + bi_annual_count  # +1 for potential everyday
-                    annual_tasks = maintenance_schedule.get("annual", {}).get("tasks", [])
-                    step_numbers_to_tick = list(range(start_step, start_step + len(annual_tasks)))
-                else:
-                    # Default calculation
-                    all_frequencies = ["monthly", "bi_annual", "annual"]
-                    step_counter = 1
-                    for freq in all_frequencies:
-                        freq_tasks = maintenance_schedule.get(freq, {}).get("tasks", [])
-                        if freq == frequency_key:
-                            for i in range(len(freq_tasks)):
-                                step_numbers_to_tick.append(step_counter)
-                                step_counter += 1
-                        else:
-                            step_counter += len(freq_tasks)
-            else:
-                # Fallback logic - but these might be wrong if Excel has "everyday" tasks
-                # We'll try both sets and see which one works
-                if frequency_key == "monthly":
-                    step_numbers_to_tick = [2, 3]  # Try 2,3 first (if everyday exists)
-                elif frequency_key == "bi_annual":
-                    step_numbers_to_tick = [4, 5, 6]  # Try 4,5,6 (if everyday and monthly exist)
-                elif frequency_key == "annual":
-                    step_numbers_to_tick = [7]  # Try 7 (if all previous exist)
-        except Exception as e:
-            # Fallback
-            if frequency_key == "monthly":
-                step_numbers_to_tick = [1, 2]
-            elif frequency_key == "bi_annual":
-                step_numbers_to_tick = [1, 2]
-            elif frequency_key == "annual":
-                step_numbers_to_tick = [3]
+        frequency_key = frequency.lower().replace("-", "_")
+        
+        # First, we need to load the Excel file to see its structure
+        # But we need step numbers before we can search, so we'll use a two-pass approach
+        # For now, calculate based on frequency and try common patterns
+        
+        # Common patterns based on Excel structure:
+        # If Excel has "Everyday" (step 1), then:
+        #   Monthly: steps 2, 3
+        #   Bi-Annual: steps 4, 5, 6  
+        #   Annual: step 7
+        # If Excel doesn't have "Everyday", then:
+        #   Monthly: steps 1, 2
+        #   Bi-Annual: steps 1, 2, 3
+        #   Annual: step 4 (or later)
+        
+        # Try the most common pattern first (with Everyday)
+        if frequency_key == "monthly":
+            step_numbers_to_tick = [2, 3]  # Most common: step 1 is everyday
+        elif frequency_key == "bi_annual":
+            step_numbers_to_tick = [4, 5, 6]  # Steps 4,5,6 for bi-annual
+        elif frequency_key == "annual":
+            step_numbers_to_tick = [7]  # Step 7 for annual
+        else:
+            step_numbers_to_tick = [1, 2]
         
         if not step_numbers_to_tick:
             return {
@@ -397,6 +359,47 @@ def update_excel_maintenance(
                     }
                 
                 target_sheet = workbook.get_sheet(target_sheet_name)
+                
+                # Before updating, try to detect actual step structure from Excel
+                # Look for the header row and see what step numbers exist
+                rb_sheet = rb.sheet_by_name(target_sheet_name)
+                detected_steps = []
+                header_row_detected = None
+                
+                for row in range(min(30, rb_sheet.nrows)):
+                    row_steps = []
+                    for col in range(rb_sheet.ncols):
+                        cell_value = str(rb_sheet.cell_value(row, col) or "").strip()
+                        # Check if this looks like a step number (1-10)
+                        if cell_value.isdigit() and 1 <= int(cell_value) <= 10:
+                            row_steps.append(int(cell_value))
+                        elif cell_value in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]:
+                            row_steps.append(int(cell_value))
+                    # If we found multiple step numbers in a row, this is likely the header
+                    if len(row_steps) >= 2:
+                        detected_steps = sorted(row_steps)
+                        header_row_detected = row
+                        break
+                
+                # If we detected steps, try to match frequency to step numbers
+                if detected_steps and frequency_key == "monthly":
+                    # Monthly tasks are usually steps 2,3 (if step 1 is everyday)
+                    if 2 in detected_steps and 3 in detected_steps:
+                        step_numbers_to_tick = [2, 3]
+                    elif 1 in detected_steps and 2 in detected_steps:
+                        step_numbers_to_tick = [1, 2]
+                elif detected_steps and frequency_key == "bi_annual":
+                    # Bi-annual are usually steps 4,5,6
+                    bi_annual_steps = [s for s in detected_steps if s >= 4 and s <= 6]
+                    if len(bi_annual_steps) >= 2:
+                        step_numbers_to_tick = bi_annual_steps[:3]  # Take up to 3 steps
+                    else:
+                        step_numbers_to_tick = [4, 5, 6]  # Default
+                elif detected_steps and frequency_key == "annual":
+                    # Annual is usually the last step (7 or higher)
+                    annual_step = max(detected_steps) if detected_steps else 7
+                    step_numbers_to_tick = [annual_step]
+                
                 result = update_excel_xls(rb, workbook, target_sheet, target_sheet_name, step_numbers_to_tick, date, user_name, frequency_key)
                 
                 if result['success']:
@@ -446,6 +449,46 @@ def update_excel_maintenance(
                         "success": False,
                         "message": f"Could not find sheet for equipment: {equipment_name} (S/N: {serial_number})"
                     }
+                
+                # Before updating, try to detect actual step structure from Excel
+                # Look for the header row and see what step numbers exist
+                detected_steps = []
+                header_row_detected = None
+                
+                for row in range(1, min(30, target_sheet.max_row + 1)):
+                    row_steps = []
+                    for col in range(1, target_sheet.max_column + 1):
+                        cell_value = str(target_sheet.cell(row, col).value or "").strip()
+                        # Check if this looks like a step number (1-10)
+                        try:
+                            if cell_value.isdigit() and 1 <= int(cell_value) <= 10:
+                                row_steps.append(int(cell_value))
+                        except:
+                            pass
+                    # If we found multiple step numbers in a row, this is likely the header
+                    if len(row_steps) >= 2:
+                        detected_steps = sorted(row_steps)
+                        header_row_detected = row
+                        break
+                
+                # If we detected steps, try to match frequency to step numbers
+                if detected_steps and frequency_key == "monthly":
+                    # Monthly tasks are usually steps 2,3 (if step 1 is everyday)
+                    if 2 in detected_steps and 3 in detected_steps:
+                        step_numbers_to_tick = [2, 3]
+                    elif 1 in detected_steps and 2 in detected_steps:
+                        step_numbers_to_tick = [1, 2]
+                elif detected_steps and frequency_key == "bi_annual":
+                    # Bi-annual are usually steps 4,5,6
+                    bi_annual_steps = [s for s in detected_steps if s >= 4 and s <= 6]
+                    if len(bi_annual_steps) >= 2:
+                        step_numbers_to_tick = bi_annual_steps[:3]  # Take up to 3 steps
+                    else:
+                        step_numbers_to_tick = [4, 5, 6]  # Default
+                elif detected_steps and frequency_key == "annual":
+                    # Annual is usually the last step (7 or higher)
+                    annual_step = max(detected_steps) if detected_steps else 7
+                    step_numbers_to_tick = [annual_step]
                 
                 result = update_excel_xlsx(workbook, target_sheet, step_numbers_to_tick, date, user_name, frequency_key)
                 

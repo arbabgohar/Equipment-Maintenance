@@ -8,7 +8,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import requests
 from dateutil.relativedelta import relativedelta
 
@@ -64,22 +64,32 @@ class MaintenanceChecker:
         else:
             raise ValueError(f"Unknown frequency: {frequency}")
     
-    def _is_due(self, last_date_str: str, frequency: str) -> bool:
-        """Check if maintenance is due based on last maintenance date and frequency."""
+    def _is_due_or_due_soon(self, last_date_str: str, frequency: str, alert_days_before: int = 14) -> Tuple[bool, datetime]:
+        """
+        Check if maintenance is due or due soon (within alert_days_before days).
+        Returns (is_due_or_due_soon, next_due_date).
+        """
         try:
             last_date = self._parse_date(last_date_str)
             next_due_date = self._calculate_next_due_date(last_date, frequency)
             today = datetime.now().date()
+            next_due_date_only = next_due_date.date()
             
-            # Check if today is on or past the due date
-            return today >= next_due_date.date()
+            # Calculate days until due date
+            days_until_due = (next_due_date_only - today).days
+            
+            # Check if maintenance is due (past due) or due within alert_days_before days
+            is_due_or_due_soon = days_until_due <= alert_days_before
+            
+            return (is_due_or_due_soon, next_due_date)
         except Exception as e:
             print(f"Error checking due date: {e}")
-            return False
+            return (False, datetime.now())
     
     def _get_due_maintenance(self) -> List[Dict[str, Any]]:
-        """Get list of equipment with due maintenance."""
+        """Get list of equipment with due maintenance (due or due within alert window)."""
         due_items = []
+        alert_days_before = self.config.get("alert_days_before", 14)  # Default to 14 days (2 weeks)
         
         for equipment in self.equipment_list:
             maintenance_schedule = equipment.get("maintenance_schedule", {})
@@ -88,37 +98,46 @@ class MaintenanceChecker:
             if "bi_annual" in maintenance_schedule:
                 # Try to get frequency-specific last maintenance date, fall back to general one
                 last_maintenance = maintenance_schedule["bi_annual"].get("last_maintenance_date") or equipment.get("last_maintenance_date")
-                if last_maintenance and self._is_due(last_maintenance, "bi_annual"):
-                    due_items.append({
-                        "equipment": equipment,
-                        "frequency": "Bi-Annual",
-                        "tasks": maintenance_schedule["bi_annual"]["tasks"],
-                        "last_maintenance_date": last_maintenance
-                    })
+                if last_maintenance:
+                    is_due, next_due_date = self._is_due_or_due_soon(last_maintenance, "bi_annual", alert_days_before)
+                    if is_due:
+                        due_items.append({
+                            "equipment": equipment,
+                            "frequency": "Bi-Annual",
+                            "tasks": maintenance_schedule["bi_annual"]["tasks"],
+                            "last_maintenance_date": last_maintenance,
+                            "next_due_date": next_due_date
+                        })
             
             # Check annual maintenance
             if "annual" in maintenance_schedule:
                 # Try to get frequency-specific last maintenance date, fall back to general one
                 last_maintenance = maintenance_schedule["annual"].get("last_maintenance_date") or equipment.get("last_maintenance_date")
-                if last_maintenance and self._is_due(last_maintenance, "annual"):
-                    due_items.append({
-                        "equipment": equipment,
-                        "frequency": "Annual",
-                        "tasks": maintenance_schedule["annual"]["tasks"],
-                        "last_maintenance_date": last_maintenance
-                    })
+                if last_maintenance:
+                    is_due, next_due_date = self._is_due_or_due_soon(last_maintenance, "annual", alert_days_before)
+                    if is_due:
+                        due_items.append({
+                            "equipment": equipment,
+                            "frequency": "Annual",
+                            "tasks": maintenance_schedule["annual"]["tasks"],
+                            "last_maintenance_date": last_maintenance,
+                            "next_due_date": next_due_date
+                        })
             
             # Check monthly maintenance
             if "monthly" in maintenance_schedule:
                 # Try to get frequency-specific last maintenance date, fall back to general one
                 last_maintenance = maintenance_schedule["monthly"].get("last_maintenance_date") or equipment.get("last_maintenance_date")
-                if last_maintenance and self._is_due(last_maintenance, "monthly"):
-                    due_items.append({
-                        "equipment": equipment,
-                        "frequency": "Monthly",
-                        "tasks": maintenance_schedule["monthly"]["tasks"],
-                        "last_maintenance_date": last_maintenance
-                    })
+                if last_maintenance:
+                    is_due, next_due_date = self._is_due_or_due_soon(last_maintenance, "monthly", alert_days_before)
+                    if is_due:
+                        due_items.append({
+                            "equipment": equipment,
+                            "frequency": "Monthly",
+                            "tasks": maintenance_schedule["monthly"]["tasks"],
+                            "last_maintenance_date": last_maintenance,
+                            "next_due_date": next_due_date
+                        })
         
         return due_items
     
@@ -145,13 +164,30 @@ class MaintenanceChecker:
             frequency = item["frequency"]
             tasks = item["tasks"]
             last_maintenance_date = item.get("last_maintenance_date", "N/A")
+            next_due_date = item.get("next_due_date")
             
-            # Format the date for display
+            # Format the dates for display
             try:
                 date_obj = self._parse_date(last_maintenance_date)
-                formatted_date = date_obj.strftime("%B %d, %Y")  # e.g., "November 12, 2025"
+                formatted_last_date = date_obj.strftime("%B %d, %Y")  # e.g., "November 12, 2025"
             except:
-                formatted_date = last_maintenance_date
+                formatted_last_date = last_maintenance_date
+            
+            # Format next due date (expiration date)
+            if next_due_date:
+                formatted_due_date = next_due_date.strftime("%B %d, %Y")  # e.g., "December 12, 2025"
+                # Calculate days until due
+                today = datetime.now().date()
+                days_until_due = (next_due_date.date() - today).days
+                if days_until_due < 0:
+                    due_status = f"*OVERDUE by {abs(days_until_due)} day(s)*"
+                elif days_until_due == 0:
+                    due_status = "*DUE TODAY*"
+                else:
+                    due_status = f"*Due in {days_until_due} day(s)*"
+            else:
+                formatted_due_date = "N/A"
+                due_status = ""
             
             # Equipment header
             equipment_text = f"*{equipment['equipment_name']}*"
@@ -168,12 +204,16 @@ class MaintenanceChecker:
                 }
             })
             
-            # Frequency and Last Maintenance Date
+            # Frequency, Last Maintenance Date, and Expiration Date
+            status_text = f"*Frequency:* {frequency}\n*Last Maintenance:* {formatted_last_date}\n*Expires On:* {formatted_due_date}"
+            if due_status:
+                status_text += f"\n{due_status}"
+            
             blocks.append({
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*Frequency:* {frequency}\n*Last Maintenance:* {formatted_date}"
+                    "text": status_text
                 }
             })
             
